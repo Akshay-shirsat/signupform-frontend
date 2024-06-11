@@ -1,43 +1,86 @@
-import React, { useState } from 'react'
-import { Alert, Snackbar } from '@mui/material'
-import { useNavigate, Link } from 'react-router-dom'
+import React, { useState } from 'react';
+import { Alert, Snackbar } from '@mui/material';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function SignUpOne() {
+  const [form, setForm] = useState({ username: '', email: '', password: '' });
+  const [errors, setErrors] = useState({});
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertSeverity, setAlertSeverity] = useState('success'); // Add state for alert severity
+  const [alertMessage, setAlertMessage] = useState('User signed up successfully!'); // Add state for alert message
 
-  const [form, setForm] = useState({})
-  const [alertOpen, setAlertOpen] = useState(false)
-
-  let navigate = useNavigate()
+  let navigate = useNavigate();
+  
   const handleForm = (e) => {
-    console.log(e.target.value, e.target.id)
+    console.log(e.target.value, e.target.id);
     setForm({
       ...form,
-      [e.target.id]: e.target.value
-    })
-  }
+      [e.target.id]: e.target.value,
+    });
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!form.username) {
+      newErrors.username = 'Username is required';
+    }
+
+    if (!form.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(form.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+
+    if (!form.password) {
+      newErrors.password = 'Password is required';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])/.test(form.password)) {
+      newErrors.password = 'Password must contain both uppercase and lowercase letters';
+    } else if (form.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters long';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handlesubmit = async (e) => {
     e.preventDefault();
-    const response = await fetch('http://localhost:8080/user', {
-      method: 'POST',
-      body: JSON.stringify(form),
-      headers: {
-        'Content-Type': 'application/json'
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/users/signup', {
+        method: 'POST',
+        body: JSON.stringify(form),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      console.log(data);
+
+      if (response.ok) {
+        setAlertMessage('User signed up successfully!');
+        setAlertSeverity('success');
+        setAlertOpen(true);
+        setTimeout(() => {
+          navigate('/login');
+          window.location.reload();
+        }, 2000);
+      } else if (data.message === 'User already exists') {
+        throw new Error('Email already exists');
+      } else {
+        throw new Error(data.massage || 'Something went wrong!');
       }
-    })
-    const data = await response.json()
-    console.log(data)
-    setAlertOpen(true)
-
-    setTimeout(() => {
-      navigate('/login');
-      window.location.reload();
-
-    }, 2000);
-
-  }
-
-
+    } catch (error) {
+      console.error('Error:', error);
+      setAlertMessage(error.message);
+      setAlertSeverity('error');
+      setAlertOpen(true);
+    }
+  };
 
   return (
     <section>
@@ -46,7 +89,6 @@ export default function SignUpOne() {
           <div className="xl:mx-auto xl:w-full xl:max-w-sm 2xl:max-w-md">
             <h2 className="text-3xl font-bold leading-tight text-black sm:text-4xl">Sign up</h2>
             <p className="mt-2 text-base text-gray-600">
-
               Already have an account?{' '}
               <Link
                 to="/login"
@@ -59,24 +101,26 @@ export default function SignUpOne() {
             <form onSubmit={handlesubmit} className="mt-8">
               <div className="space-y-5">
                 <div>
-                  <label htmlFor="name" className="text-base font-medium text-gray-900">
-                    {' '}
-                    Full Name{' '}
+                  <label htmlFor="username" className="text-base font-medium text-gray-900">
+                    Full Name
                   </label>
                   <div className="mt-2">
                     <input
                       className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                       type="text"
                       placeholder="Full Name"
-                      id="name"
+                      id="username"
+                      value={form.username}
                       onChange={handleForm}
-                    ></input>
+                    />
+                    {errors.username && (
+                      <p className="text-red-600 text-sm mt-1">{errors.username}</p>
+                    )}
                   </div>
                 </div>
                 <div>
                   <label htmlFor="email" className="text-base font-medium text-gray-900">
-                    {' '}
-                    Email address{' '}
+                    Email address
                   </label>
                   <div className="mt-2">
                     <input
@@ -84,15 +128,18 @@ export default function SignUpOne() {
                       type="email"
                       placeholder="Email"
                       id="email"
+                      value={form.email}
                       onChange={handleForm}
-                    ></input>
+                    />
+                    {errors.email && (
+                      <p className="text-red-600 text-sm mt-1">{errors.email}</p>
+                    )}
                   </div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between">
                     <label htmlFor="password" className="text-base font-medium text-gray-900">
-                      {' '}
-                      Password{' '}
+                      Password
                     </label>
                   </div>
                   <div className="mt-2">
@@ -101,17 +148,19 @@ export default function SignUpOne() {
                       type="password"
                       placeholder="Password"
                       id="password"
+                      value={form.password}
                       onChange={handleForm}
-                    ></input>
+                    />
+                    {errors.password && (
+                      <p className="text-red-600 text-sm mt-1">{errors.password}</p>
+                    )}
                   </div>
                 </div>
                 <div>
                   <input
                     type="submit"
-
                     className="inline-flex w-full items-center justify-center rounded-md bg-black px-3.5 py-2.5 font-semibold leading-7 text-white hover:bg-black/80"
                   />
-
                 </div>
               </div>
             </form>
@@ -154,17 +203,23 @@ export default function SignUpOne() {
         <div className="h-full w-full">
           <img
             className="mx-auto h-full w-full rounded-md object-cover"
-            src="https://images.unsplash.com/photo-1559526324-4b87b5e36e44?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1742&q=80"
-            alt=""
+            src="../assets/images/boy_codding.jpg"
+            alt="logo"
           />
         </div>
       </div>
+
       {/* Snackbar for Alert */}
-      <Snackbar open={alertOpen} autoHideDuration={5000} onClose={() => setAlertOpen(false)}
+      <Snackbar
+        open={alertOpen}
+        autoHideDuration={5000}
+        onClose={() => setAlertOpen(false)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert severity="success" onClose={() => setAlertOpen(false)}>User signed up successfully!</Alert>
+        <Alert severity={alertSeverity} onClose={() => setAlertOpen(false)}>
+          {alertMessage}
+        </Alert>
       </Snackbar>
     </section>
-  )
+  );
 }

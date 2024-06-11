@@ -1,43 +1,55 @@
-import React, { useState } from 'react'
-import { Alert, Snackbar } from '@mui/material'
-import { useNavigate, Link } from 'react-router-dom'
+import React, { useState } from 'react';
+import { Alert, Snackbar } from '@mui/material';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function Loginform() {
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertSeverity, setAlertSeverity] = useState('success');
+  const [alertMessage, setAlertMessage] = useState('User signed in successfully!');
 
-  const [form, setForm] = useState({})
-  const [alertOpen, setAlertOpen] = useState(false)
+  let navigate = useNavigate();
 
-  let navigate = useNavigate()
   const handleForm = (e) => {
-    console.log(e.target.value, e.target.id)
+    console.log(e.target.value, e.target.id);
     setForm({
       ...form,
-      [e.target.id]: e.target.value
-    })
-  }
+      [e.target.id]: e.target.value,
+    });
+  };
 
   const handlesubmit = async (e) => {
     e.preventDefault();
-    const response = await fetch('http://localhost:8080/user', {
-      method: 'POST',
-      body: JSON.stringify(form),
-      headers: {
-        'Content-Type': 'application/json'
+    try {
+      const response = await fetch('http://localhost:8080/users/signin', {
+        method: 'POST',
+        body: JSON.stringify(form),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      console.log(data);
+
+      if (response.ok) {
+        const token = data.token;
+        localStorage.setItem('token', token);
+        setAlertMessage('User signed in successfully!');
+        setAlertSeverity('success');
+        setAlertOpen(true);
+        setTimeout(() => {
+          navigate('/users'); // Redirect to home page after successful login
+        }, 2000);
+      } else {
+        throw new Error(data.message || 'Something went wrong!');
       }
-    })
-    const data = await response.json()
-    console.log(data)
-    setAlertOpen(true)
-
-    setTimeout(() => {
-      navigate('/login');
-      window.location.reload();
-
-    }, 2000);
-
-  }
-
-
+    } catch (error) {
+      console.error('Error:', error);
+      setAlertMessage(error.massage);
+      setAlertSeverity('error');
+      setAlertOpen(true);
+    }
+  };
 
   return (
     <section>
@@ -46,7 +58,6 @@ export default function Loginform() {
           <div className="xl:mx-auto xl:w-full xl:max-w-sm 2xl:max-w-md">
             <h2 className="text-3xl font-bold leading-tight text-black sm:text-4xl">Sign In</h2>
             <p className="mt-2 text-base text-gray-600">
-
               Don't have an account?{' '}
               <Link
                 to="/"
@@ -60,8 +71,7 @@ export default function Loginform() {
               <div className="space-y-5">
                 <div>
                   <label htmlFor="email" className="text-base font-medium text-gray-900">
-                    {' '}
-                    Email address{' '}
+                    Email address
                   </label>
                   <div className="mt-2">
                     <input
@@ -69,15 +79,15 @@ export default function Loginform() {
                       type="email"
                       placeholder="Email"
                       id="email"
+                      value={form.email}
                       onChange={handleForm}
-                    ></input>
+                    />
                   </div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between">
                     <label htmlFor="password" className="text-base font-medium text-gray-900">
-                      {' '}
-                      Password{' '}
+                      Password
                     </label>
                   </div>
                   <div className="mt-2">
@@ -86,17 +96,16 @@ export default function Loginform() {
                       type="password"
                       placeholder="Password"
                       id="password"
+                      value={form.password}
                       onChange={handleForm}
-                    ></input>
+                    />
                   </div>
                 </div>
                 <div>
                   <input
                     type="submit"
-
                     className="inline-flex w-full items-center justify-center rounded-md bg-black px-3.5 py-2.5 font-semibold leading-7 text-white hover:bg-black/80"
                   />
-
                 </div>
               </div>
             </form>
@@ -138,8 +147,8 @@ export default function Loginform() {
         </div>
         <div className="h-full w-full">
           <img
-            className="mx-auto h-full w-full rounded-md object-cover"
-            src="https://images.unsplash.com/photo-1559526324-4b87b5e36e44?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1742&q=80"
+            className="mx-auto h-full w-full rounded-lg "
+            src="../assets/images/boy_codding.jpg"
             alt=""
           />
         </div>
@@ -148,8 +157,10 @@ export default function Loginform() {
       <Snackbar open={alertOpen} autoHideDuration={5000} onClose={() => setAlertOpen(false)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert severity="success" onClose={() => setAlertOpen(false)}>User signed In successfully!</Alert>
+        <Alert severity={alertSeverity} onClose={() => setAlertOpen(false)}>
+          {alertMessage}
+        </Alert>
       </Snackbar>
     </section>
-  )
+  );
 }
